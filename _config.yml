@@ -74,7 +74,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
                 ></script>
               </div>
               <div>
-                (C) 2017-2025 wu-kan
+                (C) 2017-2026 wu-kan
               </div>
             jekyll-toc: # <https://github.com/allejo/jekyll-toc>
               enable: true
@@ -186,7 +186,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
             - | # 来自primer/css的页面样式，不要改
               <link
                 rel="stylesheet"
-                href="https://cdn.jsdelivr.net/npm/@primer/css@22.0.2/dist/primer.min.css"
+                href="https://cdn.jsdelivr.net/npm/@primer/css@22.1.0/dist/primer.min.css"
               />
             - | # 代码高亮，可在 <https://www.npmjs.com/package/pygments-rouge-css> 挑选
               <link
@@ -243,7 +243,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
                 | # 对KaTeX过长公式渲染超出页面的修正，感谢[@AmachiInori](https://github.com/wu-kan/wu-kan.github.io/issues/13)
                 <link
                   rel="stylesheet"
-                  href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css"
+                  href="https://cdn.jsdelivr.net/npm/katex@0.16.27/dist/katex.min.css"
                 />
                 <style>
                   .katex-display>.katex {
@@ -251,7 +251,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
                   }
                 </style>
                 <script
-                  src="https://cdn.jsdelivr.net/combine/npm/katex@0.16.22/dist/katex.min.js,npm/katex@0.16.22/dist/contrib/auto-render.min.js"
+                  src="https://cdn.jsdelivr.net/combine/npm/katex@0.16.27/dist/katex.min.js,npm/katex@0.16.27/dist/contrib/auto-render.min.js"
                   async="async"
                   onload='renderMathInElement(document.body, { delimiters: [{left: "$$", right: "$$", display: true}, { left: "$", right: "$", display: false }, {left: "\\(", right: "\\)", display: false}, {left: "\\[", right: "\\]", display: true}]})'
                 ></script>
@@ -265,7 +265,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
                   }
                 </style>
                 <script
-                  src="https://cdn.jsdelivr.net/combine/npm/vega@6.1.2,npm/vega-lite@6.2.0,npm/vega-embed@7.0.2"
+                  src="https://cdn.jsdelivr.net/combine/npm/vega@6.2.0,npm/vega-lite@6.4.1,npm/vega-embed@7.1.0"
                   async="async"
                   onload='
                     for(let x of document.getElementsByClassName("language-vega-lite"))
@@ -286,7 +286,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
                   }
                 </style>
                 <script
-                  src="https://cdn.jsdelivr.net/npm/mermaid@11.10.0/dist/mermaid.min.js"
+                  src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"
                   async="async"
                   defer="defer"
                   onload='
