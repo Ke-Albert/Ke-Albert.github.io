@@ -200,7 +200,7 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
               />
               <link
                 rel='stylesheet'
-                href='https://chinese-fonts-cdn.deno.dev/packages/jyhpws/dist/%E6%9E%81%E5%BD%B1%E6%AF%81%E7%89%87%E6%96%87%E5%AE%8B/result.css'
+                href='https://unpkg.com/@chinese-fonts/jyhpws@2.0.0/dist/%E6%9E%81%E5%BD%B1%E6%AF%81%E7%89%87%E6%96%87%E5%AE%8B/result.css'
               />
               <style>
                 body, .markdown-body {
