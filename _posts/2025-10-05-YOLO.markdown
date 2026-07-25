@@ -1,0 +1,395 @@
+---
+layout: post
+title:  "YOLO-目标检测"
+date:   2025-10-05 15:43:31 +0800
+tag: 人工智能
+---
+# YOLO-目标检测
+
+TLTR
+1-学习YOLO的过程
+2-Andrew Ng深度学习课程中关于YOLO的讲解
+3-霹雳吧啦Wz的讲解，https://www.bilibili.com/video/BV1yi4y1g7ro/
+
+## 学习YOLO的过程
+
+我是从25年7月份正式开始学习YOLO目标检测算法的，在这之前听了吴恩达深度学习课程中的关于YOLO的讲解，但是当时没有听懂，所以相当于重新开始。学习的是霹雳吧啦Wz的讲解，首先介绍了目标检测算法的两个方案：two-stage和one-stage。two-stage的方案包括先验框预测和分类器，代表是Faster R-CNN，而one-stage的方案则是直接预测目标框和分类，代表是YOLO，以及DETR等结合了注意力机制的模型，不过我现在主要是学习YOLO，DETR没有接触过。学习了YOLOv1-v3，其中YOLO-V3还有一个SPP的版本，这也是我跟随学习代码实现的版本，目前已经完成了YOLOV3-SPP的源码学习。当然，在这中间我还穿插着复习过Andrew Ng深度学习中涉及到的YOLO知识， `[还发现了别人总结好的网页](http://www.ai-start.com/dl2017/)`
+
+## Andrew Ng 深度学习课程中关于YOLO的讲解
+课程中，Andrew 首先将目标定位分解为了两个子问题：定位和分类。分类问题很简单，判断输入的图片中的物体是什么类型，将分类和定位结合起来，除了要判断物体的类型，还要判断物体的位置，这两个问题都是适用于单一目标，即每个图片中只有一个目标。进一步提出目标检测，图中存在着多个目标，我们都需要将它们分类和定位，这是一个多目标问题。
+接着从分类的输出中，扩充定位信息，普通的分类输出是一个经过softmax的向量，对应物体的类别数量，需要定位我们只需要在输出中额外增加4个值，用来表示物体的边框信息。有了输出，我们需要定位监督学习的目标标签，目标标签是一个向量，包括一个Pc用来表示是否含有对象（可以理解为置信度），4个表示边框的值，物体类别数量的值，在物体类别中还可以使用一个值来表示，这个值从1-n变化。
+Andrew 将4个边框值的表示扩充到了特征点检测问题，广义上神经网络可以输出图片上特征点的坐标，在目标检测中输出4个值表示边框信息，需要检测特征点可以设置任意需要统一输出特征点的数量，然后制作目标标签进行训练。
+### 基于滑动窗口的目标检测算法
+对图片进行裁剪，以识别汽车为例，只保留包含汽车的区域，其它区域裁剪掉，然后对裁剪后的图片进行分类，判断是否为汽车，输出y=0|1，这样就训练出了一个分类网络，对于多类别的同理输出y=0|1|...|n。网络训练好之后就可以基于滑动窗口来实现目标检测了，其中的定位问题，在滑动的时候就已经内含在其中了，即只要在当前窗口中识别出了一个类别，那么这个窗口的位置就是该类别的位置，我们可以记录窗口的横向和纵向滑动距离。滑动窗口的实现很灵活，首先可以选择是否以要重叠，即下一次的滑动是否与本次的部分区域重叠，从图上左上角向右下滑动，通过步距进行控制。还可以控制滑动窗口的大小。总之，这些人为控制的操作都是为了有效识别出物体，比如有些物体可能会存在两次滑动窗口之间。
+这也就引出了滑动窗口的问题：计算成本太高。如果用小步幅，无法准确定位图中的对象，如果用大步幅（包括多个目标），粗糙间隔会影响性能。
+为了提高计算效率，将滑动窗口使用卷积来实现。你可能会想，之前的滑动窗口不就是基于卷积实现的吗？再仔细分析下，最初的滑动窗口首先通过卷积判断当前窗口中有没有待分类的物体，至于滑动窗口的移动和卷积没有一点关系，可以通过两层循环实现这个逻辑。而这里的滑动窗口的卷积实现，是指将滑动窗口的移动步骤也以卷积的方式内含实现，在卷积的过程中就相当于移动了滑动窗口，过程不同但是在结果上是等价的，以至于我们可以理解为就像移动了窗口，但这是利用了卷积计算原理和它的高效操作实现的，因为卷积窗口也是需要滑动的，不过这个滑动是在pytorh等深度学习框架中实现了的，借助了GPU的高性能计算，就是说这个滑动是优化过的，提出该方法的论文是Sermanet, Pierre, et al. "OverFeat: Integrated Recognition, Localization and Detection using Convolutional Networks." Eprint Arxiv (2013)。其实就是将一维的全连接层替换成了多维的表示，不过这个多维表示也就表明它可以在其它维度上增加数量，从而将输出的特征层1x1xN变成mxmxn。该卷积操作的原理就是我们不需要把图像分割成子集，分别执行前向传播，而是将图像整体输入给卷积网络计算，其中有许多区域可以共享计算，最终得到输出层。换个角度就是感受野的解释，我们通过控制步距，窗口大小（这里的窗口大小不是卷积层的窗口大小，而是滑动窗口的大小，也就是在还没有使用卷积实现滑动窗口的时候，滑动窗口的大小，而这时我们可以去调整卷积层的大小，固定后，即卷积层大小固定，滑动窗口大小固定后，可以使用卷积的形式实现滑动窗口），来实现不同的下采样，在最后的输出结果中我们就可以得到感受野，最后输出的特征层大小就是相当于我们滑动了多少次窗口，它的位置映射回原图上就是目标框看的区域内容。
+但是该算法仍然存在不能完美定位的问题，比如目标跨过多个区域时，一个窗口定位只能定位到部分区域，还有些目标更适合用长方形的框来定位。
+### YOLO
+YOLO算法其实也是根据感受野的解释反推在原图上的目标框位置，不过它输出了边框参数，所以在边框的形状上可以很灵活的变化学习。将原图划分成SxS个小区域，这SxS个小区域在原图上经过卷积网络后得到的输出层大小就是SxS(pixel)，所以YOLO预先定义输出层大小，通过控制输出层的尺寸来控制细粒度，以更好地识别目标。对于这SxS个输出，每个位置都包括一些参数(Pc,boxes-info,class)，通过构建对应的目标标签进行训练这样的一个目标检测网络。
+这只是网络的原理，还需要结合额外的人为控制才能更好地训练网络，使用预测的边框。交并比、非极大值抑制、Pc阈值、Anchor-box。
+Andrew 介绍的YOLO算法令人恍然大悟，但是对于其中的细节没有深入探究，代码部分的实战只是简单的实现，没有关于训练的部分内容，比如数据集处理、损失函数计算、正负样本选取这些。为了识别同一区域内的多个目标，增加了anchor box后，怎么确定哪个anchor box预测的是正确的，怎么根据anchor box来计算损失，这些问题没有解答。
+## YOLOV3-SPP源码实战
+从最初的YOLOV1开始，就已经有了很多的版本，比如YOLOV2、YOLOV3、YOLOV4等，每个版本都有自己的改进，比如SPP、FPN、PAN等。而YOLOV3-SPP是在YOLOV3的基础上，增加了SPP层，用来提取不同尺度的特征，这也是我跟随学习代码实现的版本。
+学习路线首先是定义网络结构，为了让网络具有扩展性，将网络结构存储在了.cfg文件中，通过读取.cfg文件来定义网络结构，这也是YOLO系列的一个特点。有了网络结构，需要解析网络结构，将其转为在内存中规则的数据结构，再根据这个数据结构来搭建网络模型。网络模型搭建好后，训练时需要导入数据集，就需要自己制作数据集入口，包括一系列的检查文件路径、预处理、缓存操作等，都定义在了一个类里面，通过继承pytorch的`Dataset`类，传入dataloader中。数据集加载后就是训练，每个批次经过网络输出，得到预测值，需要计算预测值与关联标签的损失，再反向传播，反向传播时又定义了调度器，学习率衰减规则，打印日志等模块内容，等等这些构成了YOLOV3-SPP算法的全部过程。在训练时，除了损失计算部分是与YOLO强关联外，其它的内容都是可以迁移通用的，比如调度器、日志打印模块。
+### .cfg网络定义
+.cfg网络定义内容其实就是一些规则结构的字符串，描述了网络的层结构。并搭配了对应的解析器，用来解析.cfg文件，将其转为在内存中规则的数据结构。它主要有convolutional层，shortcut层，池化层、route层、upsample层、YOLO层。其中shortcut层和route层需要特别注意，不像其它层需要做具体的工作（比如进行大量计算），这两个层之所以单独独立成一个层（在编号中占据一个位置），shortcut层负责残差连接，所以它的关键字`from`经常等于-3，以当前shortcut层为索引0，向其上层索引3个，route层有两个作用，拼接多个层的输出和将当前的指针（代表网络当前输出所处的位置）退回到某一层（在SPP的输入多分支时有用），这是因为网络定义的顺序是线性的，即使平行结构的SPP，也需要按照线性顺序排序。YOLO层不是预测头所处的层，它是预测头的下一层（紧连着预测头），它的作用是初始化anchor模板，定义特征层的网格，判断训练还是预测，从而输出不同的结果。
+### 自定义数据集
+数据集集中了对图片和标签载入的操作预处理。包括设置批量大小，设置预处理输出图片大小、数据缓存、是否进行数据增强等操作。
+### 损失计算
+正样本计算目标框损失、分类损失和置信度损失，负样本只计算置信度损失。在`compute_loss`函数中，根据预测值和关联标签，计算损失。首先根据预测值和关联标签，筛选出正样本，也即在`build_target`函数中，筛选出正样本的类别标签（用于计算类别损失）、正样本对应的gt box信息、含有正样本的图像索引、anchor模板索引、所处的哪一个grid位置信息、anchor模板的大小信息，遍历每一个YOLO输出层，计算这三个损失。其中，置信度损失计算时首先会创建一个tobj，初始值都为0，之后对于筛选出来的正样本，根据正样本计算的iou值动态（每个批次正样本会变）去得到一个标签置信度并在tobj对应的正样本位置填上该值，其它未变的即为负样本的默认值0，然后使用预测的值和tobj进行二值交叉熵计算，得到置信度损失。可以注意到，这里并没有按照正负样本按照一定比例选取，而是计算了全部的负样本，不过使用了Focal loss、调整置信度权重等方式有效地缓解了正负样本不平衡的问题。
+
+* build_target函数解析
+    ```python
+    def build_targets(p, targets, model):
+    # Build targets for compute_loss(), input targets(image_idx,class,x,y,w,h)
+    # p: predictions [batch_size, num_anchors, grid_h, grid_w, num_params]
+    #选出正样本
+    nt = targets.shape[0]
+    tcls, tbox, indices, anch = [], [], [], []
+    # gain：用于将归一化坐标转换到“网格空间”的缩放因子（初始为全1，后续按层更新）
+    gain = torch.ones(6, device=targets.device).long()  # normalized to gridspace gain
+
+    multi_gpu = type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)
+    for i, j in enumerate(model.yolo_layers):  # j: [89, 101, 113]
+        # 获取该yolo predictor对应的anchors
+        # 注意anchor_vec是anchors缩放到对应特征层上的尺度
+        anchors = model.module.module_list[j].anchor_vec if multi_gpu else model.module_list[j].anchor_vec
+        # p[i].shape: [batch_size, 3, grid_h, grid_w, num_params]
+        gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+        na = anchors.shape[0]  # number of anchors
+        # [3] -> [3, 1] -> [3, nt]
+        at = torch.arange(na).view(na, 1).repeat(1, nt).to('cuda')  # anchor tensor, same as .repeat_interleave(nt)
+
+        # Match targets to anchors
+        a, t, offsets = [], targets * gain, 0
+        if nt:  # 如果存在target的话
+            # 通过计算anchor模板与所有target的wh_iou来匹配正样本
+            # j: [3, nt] , iou_t = 0.20
+            j = (wh_iou(anchors, t[:, 4:6]) > model.hyp['iou_t']).to('cuda')  # iou(3,n) = wh_iou(anchors(3,2), gwh(n,2))
+            # t.repeat(na, 1, 1): [nt, 6] -> [3, nt, 6]
+            # 获取正样本对应的anchor模板与target信息
+            a, t = at[j], t.repeat(na, 1, 1)[j]  # filter
+
+        # Define
+        # long等于to(torch.int64), 数值向下取整
+        b, c = t[:, :2].long().T  # image_idx, class
+        gxy = t[:, 2:4]  # grid xy
+        gwh = t[:, 4:6]  # grid wh 
+        gij = (gxy - offsets).long()  # 匹配targets所在的grid cell左上角坐标
+        gi, gj = gij.T  # grid xy indices
+
+        # Append
+        # gain[3]: grid_h, gain[2]: grid_w
+        # image_idx, anchor_idx, grid indices(y, x)
+        indices.append((b, a, gj.clamp_(0, gain[3]-1), gi.clamp_(0, gain[2]-1)))
+        tbox.append(torch.cat((gxy - gij, gwh), 1))  # gt box相对anchor的x,y偏移量以及w,h
+        anch.append(anchors[a])  # anchors
+        tcls.append(c)  # class
+        if c.shape[0]:  # if any targets
+            # 目标的标签数值不能大于给定的目标类别数
+            assert c.max() < model.nc, 'Model accepts %g classes labeled from 0-%g, however you labelled a class %g. ' \
+                                       'See https://github.com/ultralytics/yolov3/wiki/Train-Custom-Data' % (
+                                           model.nc, model.nc - 1, c.max())
+
+    return tcls, tbox, indices, anch
+    ```
+    该函数接收预测值(P,shapes=[3,Batch,anchor_num,p_h,p_w,5+num_classes]),真值标签(targets,shapes=[num_target,6(img_idx,class_idx,x,y,w,h)],xywh是中心坐标和宽高的归一化值)和模型(model)。该函数的目标是根据模板anchor和真值标签，筛选出正样本对应的anchor和target，再结合预测值计算偏移量，返回正样本对应的类别信息、box偏移量信息、图片索引信息和anchor信息。
+    首先获取真值的个数num_target，每个batch可能有不同数量的目标，这个个数是动态变化的。然后创建`tcls, tbox, indices, anch = [], [], [], []`，以备后续添加筛选出正样本对应的信息。`gain`(每个1对应着targets中这些位置[img_idx,class_idx,x,y,w,h])值用于将归一化坐标转换到“网格空间”的缩放因子（初始为全1，后续按层更新），用于将targets的坐标转换到与预测值相同的网格空间，因为targets最初是采用归一化的形式的。
+    `anchors`获取到当前yolo predictor对应的anchor模板（就是原本anchor根据步距缩放到当前predictor的特征层上的尺度），形状为[3,2]，表示3个anchor模板，每个模板有2个参数（宽高）。gain参数更新x,y,w,h的缩放因子，用于将targets的坐标转换到与预测值相同的网格空间。`na`是anchor模板的个数，一般是3，通过展开维度得到`at`，它的形状是[na,num_target]，表示的意思是每个anchor模板对应当前batch中的真实目标数，因为此时我们不知道正样本它的anchor模板与目标对是哪些，有可能一个anchor模板会对应上多个目标(每个网格规定了有3个anchor，这三个anchor都源自于最初的那3个anchor模板)，有可能这些anchor模板(3个)与其中的某个目标都不符合正样本的条件。
+    准备好以上的信息后，就可以根据anchor模板与targets的wh_iou来筛选出正样本了。`t`是将targes和gain缩放系数相乘得到的缩放到当前预测特征图尺寸上的预测结果，它的归一化坐标变成了当前特征图上的坐标。如果当前batch中存在目标的话，计算anchor模板和t的IoU值，这里的代码是`j = (wh_iou(anchors, t[:, 4:6]) > model.hyp['iou_t'])`,它采用了不严格的计算方式，通过把所有的anchor和目标，把它们的中心点平移到坐标原点，再去按照它们的高宽计算IoU值，其实是一种简化的计算路径。通过与预先设定的IoU阈值比较可以得到一个布尔值掩膜`j`，它的形状和`at`是一样的，都是[na,num_target]，表示每个anchor模板与每个目标的IoU值是否大于阈值。通过这个掩膜`j`，就可以筛选出正样本对应的anchor模板和target信息，分别存储在`a`和`t`中,它们的形状一个是[None,]，一个是[None,6]，这里的None表示的是不清楚匹配到几个正样本，通过debug自定义训练样本此时的None等于22，而num_target的值是13，表示当前batch中有13个目标，但是筛选出来了22个正样本，所以这就验证了多个anchor也会匹配到同一个目标的情况，他们都是正样本。`a`中元素的值是anchor模板的索引例如[0,0,0,1,1,1,2,2,2]这样的，它对应着`t`中对应元素也就是此刻目标匹配的样本模板，比如a[0]正好对应t[0]。这样我们就得到了正样本(anchor模板-目标对)。
+    `b`和`c`它们的形状都是[None,]，表示的是正样本对应的图片索引和类别索引。`gxy`和`gwh`则是正样本的中心坐标和宽高(缩放到当前特征图尺寸)，`gij`通过向下取整得到的是正样本所在的网格cell的左上角坐标，`gi, gj`则是`gij`的元素，分别表示网格的y轴和x轴索引。
+    indices将(b,a,gj,gi)包裹到一个元组中并加入到当前列表中。记录了正样本对应的图片索引、anchor模板索引、x轴和y轴的网格索引，用来定位正样本在特征图上的所属网格位置。tbox将gt box相对于当前grid cell的x,y偏移量和宽高加入到当前列表中。anch将当前正样本对应的anchor模板加入到当前列表中。tcls将当前正样本对应的类别索引加入到当前列表中。
+    以上都是在一个预测特征图尺寸下的正样本筛选和信息记录，不同的预测特征图尺寸下的正样本筛选和信息记录是独立的，互不干扰。总结下我发现最重要的代码部分就是
+
+* compute_loss函数解析
+    ```python
+    def compute_loss(p, targets, model):  # predictions, targets, model
+    device = p[0].device
+    lcls = torch.zeros(1, device=device)  # Tensor(0)
+    lbox = torch.zeros(1, device=device)  # Tensor(0)
+    lobj = torch.zeros(1, device=device)  # Tensor(0)
+    tcls, tbox, indices, anchors = build_targets(p, targets, model)  # targets
+    h = model.hyp  # hyperparameters
+    red = 'mean'  # Loss reduction (sum or mean)
+
+    # Define criteria
+    BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device), reduction=red)
+    BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device), reduction=red)
+
+    # class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
+    cp, cn = smooth_BCE(eps=0.0)
+
+    # focal loss
+    g = h['fl_gamma']  # focal loss gamma
+    if g > 0:
+        BCEcls, BCEobj = FocalLoss(BCEcls, g), FocalLoss(BCEobj, g)
+
+    # per output
+    for i, pi in enumerate(p):  # layer index, layer predictions
+        b, a, gj, gi = indices[i]  # image_idx, anchor_idx, grid_y, grid_x
+        tobj = torch.zeros_like(pi[..., 0], device=device)  # target obj
+
+        nb = b.shape[0]  # number of positive samples
+        if nb:
+            # 对应匹配到正样本的预测信息
+            ps = pi[b, a, gj, gi]  # prediction subset corresponding to targets
+
+            # GIoU
+            pxy = ps[:, :2].sigmoid()
+            pwh = ps[:, 2:4].exp().clamp(max=1E3) * anchors[i]
+            pbox = torch.cat((pxy, pwh), 1)  # predicted box
+            giou = bbox_iou(pbox.t(), tbox[i], x1y1x2y2=False, GIoU=True)  # giou(prediction, target)
+            lbox += (1.0 - giou).mean()  # giou loss
+
+            # Obj
+            tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
+
+            # Class
+            if model.nc > 1:  # cls loss (only if multiple classes)
+                t = torch.full_like(ps[:, 5:], cn, device=device)  # targets
+                t[range(nb), tcls[i]] = cp
+                lcls += BCEcls(ps[:, 5:], t)  # BCE
+
+            # Append targets to text file
+            # with open('targets.txt', 'a') as file:
+            #     [file.write('%11.5g ' * 4 % tuple(x) + '\n') for x in torch.cat((txy[i], twh[i]), 1)]
+
+        lobj += BCEobj(pi[..., 4], tobj)  # obj loss
+
+    # 乘上每种损失的对应权重
+    lbox *= h['giou']
+    lobj *= h['obj']
+    lcls *= h['cls']
+
+    # loss = lbox + lobj + lcls
+    return {"box_loss": lbox,
+            "obj_loss": lobj,
+            "class_loss": lcls}
+    ```
+    该函数就是计算目标框损失、置信度损失和类别损失。其中负样本只会计算置信度损失。目标框损失的计算方式是计算预测的目标框参数和正样本的目标框参数的gIoU值。置信度损失的计算方式是首先根据每一个预测特征图的大小创建一个tobj变量，它的形状是[B,num_anchor,h,w],为属于正样本的位置赋值`tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(0).type(tobj.dtype)`,其它位置不变保持0值，然后计算它的交叉熵损失`lobj += BCEobj(pi[..., 4], tobj)`。对于类别损失，当类别大于1时才进行计算，首先构建一个`t`变量，它的形状是[None,80]，因为这里None表示根据实际的正样本数决定，而80则是当前使用coco数据集有80个类别，它的值默认赋值cn就是负样本的值。之后通过`t[range(nb),tcls[i]]=cp`将正样本对应的那个类别的值赋值为cp，这样就构建好了类别标签，通过`lcls+=BCEcls(ps[:,5:],t)`计算类别的交叉熵损失。最后以字典形式返回这三个损失，在返回之前还要乘上每种损失对应的权重。
+
+## Ultralytics源码解析
+### 损失计算
+    在Ultralytics的YOLO11目标检测网络中，损失计算使用的是v8DetectionLoss类。YOLOv8的损失计算包括了类别损失(原来的置信度损失现在合并到了类别损失中，由类别损失来执行YOLOv3中类别和置信度的责任)、DFL损失、Bbox损失，DFL的核心思想是模型不去直接预测边界框的偏移量，而是预测偏移量在离散区间上的分布。再通过分布加权求和得到最终的偏移量，其目标就是为了更精准地预测边界框。比如，它会将偏移量等分成16等份，然后去预测偏移量落在这16等份离散区间上的分布值。
+```python
+    def __call__(self, preds: Any, batch: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""
+        loss = torch.zeros(3, device=self.device)  # box, cls, dfl
+        feats = preds[1] if isinstance(preds, tuple) else preds
+        pred_distri, pred_scores = torch.cat([xi.view(feats[0].shape[0], self.no, -1) for xi in feats], 2).split(
+            (self.reg_max * 4, self.nc), 1
+        )
+
+        pred_scores = pred_scores.permute(0, 2, 1).contiguous()
+        pred_distri = pred_distri.permute(0, 2, 1).contiguous()
+
+        dtype = pred_scores.dtype
+        batch_size = pred_scores.shape[0]
+        imgsz = torch.tensor(feats[0].shape[2:], device=self.device, dtype=dtype) * self.stride[0]  # image size (h,w)
+        anchor_points, stride_tensor = make_anchors(feats, self.stride, 0.5)
+
+        # Targets
+        targets = torch.cat((batch["batch_idx"].view(-1, 1), batch["cls"].view(-1, 1), batch["bboxes"]), 1)
+        targets = self.preprocess(targets.to(self.device), batch_size, scale_tensor=imgsz[[1, 0, 1, 0]])
+        gt_labels, gt_bboxes = targets.split((1, 4), 2)  # cls, xyxy
+        mask_gt = gt_bboxes.sum(2, keepdim=True).gt_(0.0)
+
+        # Pboxes
+        pred_bboxes = self.bbox_decode(anchor_points, pred_distri)  # xyxy, (b, h*w, 4)
+        # dfl_conf = pred_distri.view(batch_size, -1, 4, self.reg_max).detach().softmax(-1)
+        # dfl_conf = (dfl_conf.amax(-1).mean(-1) + dfl_conf.amax(-1).amin(-1)) / 2
+
+        _, target_bboxes, target_scores, fg_mask, _ = self.assigner(
+            # pred_scores.detach().sigmoid() * 0.8 + dfl_conf.unsqueeze(-1) * 0.2,
+            pred_scores.detach().sigmoid(),
+            (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
+            anchor_points * stride_tensor,
+            gt_labels,
+            gt_bboxes,
+            mask_gt,
+        )
+
+        target_scores_sum = max(target_scores.sum(), 1)
+
+        # Cls loss
+        # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
+        loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum  # BCE
+
+        # Bbox loss
+        if fg_mask.sum():
+            target_bboxes /= stride_tensor
+            loss[0], loss[2] = self.bbox_loss(
+                pred_distri, pred_bboxes, anchor_points, target_bboxes, target_scores, target_scores_sum, fg_mask
+            )
+
+        loss[0] *= self.hyp.box  # box gain
+        loss[1] *= self.hyp.cls  # cls gain
+        loss[2] *= self.hyp.dfl  # dfl gain
+
+        return loss * batch_size, loss.detach()  # loss(box, cls, dfl)
+```
+1. 初始化损失张量
+    计算损失时，首先会创建一个loss变量分别存储「边界框损失、分类 + 置信度损失、DFL 损失」。
+2. 提取模型预测特征
+   feats是模型的预测输出，它是一个list有3个元素，分别是三个检测头的预测输出。feates=[ (B, nc+reg_max*4, H1, W1), (B, nc+reg_max*4, H2, W2), (B, nc+reg_max*4, H3, W3) ]，其中B是批量大小，h和w是特征图的高度和宽度，4是目标框的参数数量，reg_max是DFL的离散区间数量。
+3. 特征图展平+分离坐标分布和分类分数
+   pred_distri, pred_scores = torch.cat([xi.view(feats[0].shape[0], self.no, -1) for xi in feats], 2).split(
+    (self.reg_max * 4, self.nc), 1
+)
+    将预测图的高宽展平为一个维度，并将不同尺度的特征图的预测结果按展平的维度拼接起来，然后将坐标分布和分类分数分离出来。pred_distri的形状为(B,坐标分布通道数,总锚点数)，pred_scores的形状为(B, 类别数, 总锚点数)。
+4. 调整通道维度顺序，适配后续计算
+   将pred_distri和pred_scores的总锚点数和坐标分布通道数/类别数的维度位置进行交换，使其更合理，按照批次维度-锚点维度-坐标分布通道数/类别数维度进行索引。
+5. 计算输入图像尺寸+生成锚点
+   这一步和YOLOv3SPP中的YOLOLayer那一步的目的是一样的，都是生成anchor。不过，虽说都是生成anchor,但是YOLOv8是free anchor的，即每一个网格都只有一个坐标框的相关参数预测，而YOLOv3SPP中每个网格有多个坐标框的相关参数预测（YOLOv3中有一个anchor_num的维度，YOLOv8中没有该维度）。
+   首先会根据当前第一个特征图的最后两个维度(H,W)乘以对应特征图的stride，复原回原图的尺寸大小。比如(64,64)x8->(512,512)。然后会调用make_anchors(feats,self.stride,0.5)来生成所有尺度的anchor中心点坐标(0.5为步距)和对应的步长张量。
+   sy,sx=torch.meshgrid(sy,sx,indexing='ij')，其中sy代表行，sx代表列，因为计算机中原点是在左上角，往右是x轴，往下是y轴，所以sx是列索引，sy是行索引。而我们常用的索引方式是先说行，再说列，第几行第几列，所以sy,sx这样的索引方式是符合我们的习惯的。但是在数学上，是按照(x,y)的方式进行索引的，就是先第几列，再第几行。所以，meshgrid对每一个网格生成它是第几行的索引坐标集合和它是第几列的坐标集合，所以sy代表每一个网格是第几行，它的形状是[h,w]，第一个维度的元素是[h_i,h_i,...,h_i]，代表这一行w个网络它是第几行，同理，sx的形状是[h,w]，第一个维度的元素是[w_1,w_2,...,w_w]，代表这一行w个网格它是第几列。torch.stack((sx,sy),-1).view(-1,2)是按照(x,y)的索引方式在列的维度[h,w]进行拼接，再调整形状为[锚点的数量,2]，这样就得到所有锚点它的中心点(x,y)坐标索引了。stride_tensor.append(torch.full((h * w, 1), stride, dtype=dtype, device=device))为每一个锚点生成该特征尺度下相同的stride值。
+   最后输出的锚点和步距张量的形状都是二维的，其中anchor的形状是[总的锚点数量,2(x,y)]，stride的形状是[总的锚点数量，1(stride_value)]。
+6. 处理目标标签
+   现在我们需要对真值标签进行处理。首先将batch_idx(代表目标所在的图片索引批次号)，cls(类别),bbox(xywh)沿着第一维进行拼接，所以我们得到的targets的维度是二维的，形状是[num_target,6]。
+   然后在process函数中传入targets，batch_size和scale_tensor。如果当前batch中没有目标，则直接返回一个全为0的张量，形状是(batch_size,0,ne-1)，而有目标的话，会先创建一个out张量默认值为0，形状是(batch_size,counts.max(),ne-1)，这里因为用了batch_size维度，所以原来targets中第一维的第一个元素batch_idx，就不用再放入了，这里的counts是来自于targets第0维度的所有目标的所属图片批次的索引，它表示每一个图片批次中有多少个目标存在。比如第一个批次图片索引中，有17个目标，第二个批次图片索引中有2个目标等等。而counts.max()则是找到所有这些图片中，在一张图片上存在的最大目标的数量。并以此为准，创建了counts.max()这个维度，out[j,:n]=targets[matches,1:]就是说将每张图片中存在的目标的除了批次号的元素(包括类别和目标框参数)都进行赋值，所有小于counts.max()的批次号，它只会填充前n个，其它的则默认为0，而遇到counts.max()所在的批次号时，就会全部填满。执行完这个后，就将原来的targets由目标数量的索引形式转为了以批次进行索引的形式。再将out中的目标框由(xywh)的归一化表示转为(xyxy)的表示形式，并乘以scale_tensor还原回最初输入网络的时候图片的大小。
+   所以process的作用就是将原来的targets的索引方式由目标数量的索引形式转为了以批次进行索引的形式，并将xywh表示转为xyxy表示，然后恢复成原图大小。
+   gt_labels和gt_bboxes分别来自于处理后的targets的第2维度的第一个元素和其余元素。因为在process中第1个维度采用了counts.max()，所以其它图片中目标数小于最大图片的目标数时，会有默认的0值出现，所以需要mask_gt=gt_bboxes.sum(2,keepdim=True).gt_(0.)来得到一个有效的掩膜，标记有效目标。
+7. 解码预测边界框参数
+   因为预测的边界框参数是偏移量的分布，所以需要对其进行解码，从分布得到真实偏移量。pred_bboxes=self.bbox_decode(anchor_points,pred_distri)，其中anchor_points是所有锚点的中心点坐标形状是[总的锚点数量,2(x,y)]，pred_distri是预测的边界框参数分布形状是[批量大小,总的锚点数量，坐标分布通道数]。YOLOv8默认使用dfl，pred_dist = pred_dist.view(b, a, 4, c // 4).softmax(3).matmul(self.proj.type(pred_dist.dtype))，它将4个方向(ltrb)单独成立了一个维度，然后按照这个维度计算softmax，得到概率分布值，相加为1。然后通过矩阵相乘计算每个离散区间的加权和，权重就是刚才计算得到的概率分布值。在这里,self.proj分成了16个离散区间，其值从[0-15]变化，经过这样的计算,pred_dist的形状是[b,a,4]，就得到了(ltrb)四个方向的偏移量，dist2bbox(pred_dist, anchor_points, xywh=False)的作用就是将(ltrb)四个方向的偏移量转为(xyxy)坐标的形式。
+   所以，返回的pred_bboxes的形状是从[b,a,reg_max*4]变为[b,a,4]，它的第2维度的每个元素代表一个锚点的(xyxy)坐标表示。
+8.  正负样本匹配
+    和YOLOv3SPP中一样，也要进行正负样本匹配。
+    ```python
+    @torch.no_grad()
+    def forward(self, pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt):
+        """
+        Compute the task-aligned assignment.
+
+        Args:
+            pd_scores (torch.Tensor): Predicted classification scores with shape (bs, num_total_anchors, num_classes).
+            pd_bboxes (torch.Tensor): Predicted bounding boxes with shape (bs, num_total_anchors, 4).
+            anc_points (torch.Tensor): Anchor points with shape (num_total_anchors, 2).
+            gt_labels (torch.Tensor): Ground truth labels with shape (bs, n_max_boxes, 1).
+            gt_bboxes (torch.Tensor): Ground truth boxes with shape (bs, n_max_boxes, 4).
+            mask_gt (torch.Tensor): Mask for valid ground truth boxes with shape (bs, n_max_boxes, 1).
+
+        Returns:
+            target_labels (torch.Tensor): Target labels with shape (bs, num_total_anchors).
+            target_bboxes (torch.Tensor): Target bounding boxes with shape (bs, num_total_anchors, 4).
+            target_scores (torch.Tensor): Target scores with shape (bs, num_total_anchors, num_classes).
+            fg_mask (torch.Tensor): Foreground mask with shape (bs, num_total_anchors).
+            target_gt_idx (torch.Tensor): Target ground truth indices with shape (bs, num_total_anchors).
+
+        References:
+            https://github.com/Nioolek/PPYOLOE_pytorch/blob/master/ppyoloe/assigner/tal_assigner.py
+        """
+        self.bs = pd_scores.shape[0]
+        self.n_max_boxes = gt_bboxes.shape[1]
+        device = gt_bboxes.device
+
+        if self.n_max_boxes == 0:
+            return (
+                torch.full_like(pd_scores[..., 0], self.num_classes),
+                torch.zeros_like(pd_bboxes),
+                torch.zeros_like(pd_scores),
+                torch.zeros_like(pd_scores[..., 0]),
+                torch.zeros_like(pd_scores[..., 0]),
+            )
+
+        try:
+            return self._forward(pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt)
+        except torch.cuda.OutOfMemoryError:
+            # Move tensors to CPU, compute, then move back to original device
+            LOGGER.warning("CUDA OutOfMemoryError in TaskAlignedAssigner, using CPU")
+            cpu_tensors = [t.cpu() for t in (pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt)]
+            result = self._forward(*cpu_tensors)
+            return tuple(t.to(device) for t in result)
+```
+    需要注意的是，传入的pd_scores经过了sigmoid()激活，而pd_bboxes和anc_points都还原回了原图大小下尺寸表示，所以涉及到的这些计算都是在原图尺寸下的计算。如果当前所有批次中，没有目标(counts.max()==0)，则直接返回全0的target_labels、target_bboxes、target_scores、fg_mask、target_gt_idx。否则，调用_forward()方法进行正负样本匹配。
+    ```python
+        def _forward(self, pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt):
+        """
+        Compute the task-aligned assignment.
+
+        Args:
+            pd_scores (torch.Tensor): Predicted classification scores with shape (bs, num_total_anchors, num_classes).
+            pd_bboxes (torch.Tensor): Predicted bounding boxes with shape (bs, num_total_anchors, 4).
+            anc_points (torch.Tensor): Anchor points with shape (num_total_anchors, 2).
+            gt_labels (torch.Tensor): Ground truth labels with shape (bs, n_max_boxes, 1).
+            gt_bboxes (torch.Tensor): Ground truth boxes with shape (bs, n_max_boxes, 4).
+            mask_gt (torch.Tensor): Mask for valid ground truth boxes with shape (bs, n_max_boxes, 1).
+
+        Returns:
+            target_labels (torch.Tensor): Target labels with shape (bs, num_total_anchors).
+            target_bboxes (torch.Tensor): Target bounding boxes with shape (bs, num_total_anchors, 4).
+            target_scores (torch.Tensor): Target scores with shape (bs, num_total_anchors, num_classes).
+            fg_mask (torch.Tensor): Foreground mask with shape (bs, num_total_anchors).
+            target_gt_idx (torch.Tensor): Target ground truth indices with shape (bs, num_total_anchors).
+        """
+        mask_pos, align_metric, overlaps = self.get_pos_mask(
+            pd_scores, pd_bboxes, gt_labels, gt_bboxes, anc_points, mask_gt
+        )
+
+        target_gt_idx, fg_mask, mask_pos = self.select_highest_overlaps(mask_pos, overlaps, self.n_max_boxes)
+
+        # Assigned target
+        target_labels, target_bboxes, target_scores = self.get_targets(gt_labels, gt_bboxes, target_gt_idx, fg_mask)
+
+        # Normalize
+        align_metric *= mask_pos
+        pos_align_metrics = align_metric.amax(dim=-1, keepdim=True)  # b, max_num_obj
+        pos_overlaps = (overlaps * mask_pos).amax(dim=-1, keepdim=True)  # b, max_num_obj
+        norm_align_metric = (align_metric * pos_overlaps / (pos_align_metrics + self.eps)).amax(-2).unsqueeze(-1)
+        target_scores = target_scores * norm_align_metric
+
+        return target_labels, target_bboxes, target_scores, fg_mask.bool(), target_gt_idx
+```
+    self.get_pos_mask的作用是为每一个真值box获取正样本掩膜
+    1. 调用select_candidates_in_gts方法，选取落在在真值框内的正锚点中心点mask_in_gts。
+       1. xy_centers[None]的作用是给锚点中心增加维度，shape从[n_anchors,2]变为了[1,n_anchors,2]，再通过广播与lt([bs*counts.max(),1,2])匹配，得到[bs*counts.max(),n_anchors,2]其含义是每个真实框与每个锚点的中心x1差、中心y1差。
+       2. rb-xy_centers[None]同理，得到每个真实框与每个锚点的中心x2差、中心y2差。
+       3. torch.cat(...,dim=2)，拼接后坐标维度变成4，shape[bs*n_boxes,n_anchors,4]这4个值分别是x_center-x1,y_center-y1,x2-x_center,y2-y_center。
+       4. 最后view恢复批次和真实框的维度，最终bbox_deltas的shape为[bs,n_boxes,n_anchors,4]。
+       5. return bbox_deltas.amin(3).gt_(eps)。测分数
+          1. 最终判断锚点是否在真实框内，amin(3)表示对第3维度(4个偏移差)取最小值，每个批次、真实框、锚点对应一个值，代表4个偏移差中最小的那个。
+          2. gt_(eps)，判断这个最小值是否大小eps极小值，避免数值误差
+          3. 最终返回shape为[bs,n_boxes(counts.max()),n_anchors]的布尔张量，True表示该锚点的4个偏移差均为正，即锚点中心在真实框的内部：x1<x_center<x2且y1<y_center<y2，False表示锚点在真实框外部或者边界处。
+       6. 总结下来，该方法就是判断锚点是否是在真实框的内部，而里面的n_boxes其实是之前构建真实框时用的counts.max()，所有xyxy为默认0值的当然最终其布尔值为False。
+    2. 调用get_box_metrics方法，基于预测和真值框，获取align_metric,overlaps。
+       1. mask_gt是有效的gt框掩膜，shape为[bs,n_max_boxes,n_anchors]，True表示该真实框-anchor对是有效的，False表示无效的gt-anchor对。
+       2. overlaps是用来记录gt与anchor的重叠度(IOU)，shape为[bs,n_max_boxes,n_anchors]，记录真实框-anchor对的IOU值。
+       3. bbox_scores是用来记录每个真实框-anchor对的类别预测分数，shape为[bs,n_max_boxes,n_anchors]，记录每个真实框-anchor对的类别预测分数。
+       4. 构建类别索引，提取对应的预测分数
+          1. ind=torch.zeros([2, self.bs, self.n_max_boxes], dtype=torch.long)
+          2. ind[0]=torch.arange(self.bs)[:,None].expand(-1,self.n_max_boxes),shape是[bs,n_max_boxes]，其值是[[0,...,0],...,[bs-1,...,bs-1]]这样的。
+          3. ind[1]=gt_labels.long().squeeze(-1)，shape是[bs,n_max_boxes]
+          4. bbox_scores[mask_gt]=pd_scores[ind[0], :, ind[1]][mask_gt]，在有效的gt-anchor对处，赋值为pd_scores中对应的值，shape是[bs,n_max_boxes,n_anchors]
+       5. 计算GT和anchor的IOU，pd_boxes = pd_bboxes.unsqueeze(1).expand(-1, self.n_max_boxes, -1, -1)[mask_gt]，shape是[N,4]，表示N个有效gt-anchor对的预测框坐标。
+          1. gt_boxes = gt_bboxes.unsqueeze(2).expand(-1, -1, na, -1)[mask_gt]，shape是[N,4]，表示N个有效gt-anchor对的真实框坐标
+          2. overlaps[mask_gt]=self.iou_calculation(gt_boxes, pd_boxes)，计算这些有效gt-anchor对的CIOU值
+       6. align_metric = bbox_scores.pow(self.alpha) * overlaps.pow(self.beta)，计算对齐度量，将类别预测分数和IOU分别加权后相乘，综合反映“预测框与GT的匹配程度”，即分数越高、IOU越大，匹配度越高。
+       7. 输出align_metric(用于正负样本分配或损失加权)和overlaps(原始的IOU值)，它们的shape都是[bs,n_max_boxes,n_anchors]
+       8. 总结下，该方法的核心目的就是为每个真是目标框找到最匹配的预测框，给后续的正负样本划分或损失计算提供依据。
+    3. mask_topk = self.select_topk_candidates(align_metric, topk_mask=mask_gt.expand(-1, -1, self.topk).bool())，获取前topk个度量metric的掩膜
+    4. mask_pos = mask_topk * mask_in_gts * mask_gt，获取最终的正样本掩膜
+    5. 返回mask_pos, align_metric, overlaps，它们的形状都是[bs,n_max_boxes,n_anchors]
+    self.select_highest_overlaps的作用是当多个真实框对应同一个锚框时，根据overlaps选择IOU最大的那个真实框，返回其索引、前景掩膜、正样本掩膜。
+    self.get_targets的作用是根据选择的真实框索引，获取对应的目标标签、目标框、目标分数。
+    最终，输出target_bboxes(正样本的目标框),target_scores(正样本=类别概率，负样本=0),fg_mask(正样本掩码，True=正样本，False=负样本)
+
+
+## 多标签分类与多分类
+    我一直没有搞明白BCELoss和CrossEntropyLoss它们有什么区别。现在终于动了动我的小脑筋，克服了拖延症，细细分析下它们的区别，以及延申到YOLO目标检测中使用多标签分类，这也是把它们放在这里叙述的原因。
+
+    首先我们看BCELoss。顾名思义，就是二值交叉熵损失，它用于二分类任务，计算预测值与真实标签之间的差异。它的公式如下：
+L(y, \hat{y}) = - \left[ y \cdot \log(\hat{y}) + (1 - y) \cdot \log(1 - \hat{y}) \right]
+y的取值范围是{0,1}，当y取1时，公式简化为`L = -\log(\hat{y})`，同样地当y取0时，公式简化为`L = -\log(1 - \hat{y})`。
+对于N个样本，我们取平均值
+`L = -\frac{1}{N} \sum_{i=1}^{N} \left[ y_i \cdot \log(\hat{y}_i) + (1 - y_i) \cdot \log(1 - \hat{y}_i) \right]`
+并且，实际使用时常常讲sigmoid函数和BCE损失计算进行合并，BCEWithLogitsLoss，以求数值稳定。
+此外，我们还可以使用带权重的变体形式，以平衡二分类下正负样本的类别不平衡问题。
+`L = -\frac{1}{N} \sum_{i=1}^{N} \left[ \omega \cdot y_i \cdot \log(\hat{y}_i) + (1 - \omega) \cdot (1 - y_i) \cdot \log(1 - \hat{y}_i) \right]`
+    接下来我们看多类别交叉熵损失。它是针对多分类任务（输出≥3 类，且样本 “互斥唯一”，即一个样本只能属于一类）设计的损失函数，本质是基于多项式分布（单个样本有 K 种输出可能，且概率和为 1）的交叉熵计算。它的激活函数是softmax，将模型输出的原始分数转换为概率分布，并且概率之和为1。
+    当只有一个样本时，它的形式是
+    `L(y, \hat{y}) = - \sum_{k=1}^{K} y_k \cdot \log(\hat{y}_k)`
+    而因为采用独特编码，所以当有多个样本时，公式可以简化成
+    `L = -\frac{1}{N} \sum_{i=1}^{N} \log(\hat{y}_{i, y_i})`
+    不要因为有多类别，就混淆了多标签分类(multi label classification)和多分类(multi-class classification)。多标签分类是指每个样本可以属于多个类别，而多分类是指每个样本只能属于一个类别。例如，一个图片可以同时包含猫、狗和鸟，这是一个多标签分类问题。而一个图片只能是猫、狗或鸟中的一种，这是一个多分类问题。在YOLO目标检测中计算目标的类别损失时，其实就是一个多标签分类问题，使用的是BCELoss，对每一个类别单独计算它的二值交叉熵损失。对于80类的检测任务，YOLO不会让模型输出“80个概率和为1”的结果，而是让模型输出80个独立的[0,1]值——每个值表示“该框属于这个类别的概率”，彼此独立、互不影响（比如一个框可以同时输出“人0.95”、“车：0.02”、“猫：0.01”，无需求和为1）它的计算逻辑是对每一个类别单独计算BCE损失，再求平均。
+
+## YOLO中类别损失计算时怎么为不同类别设置不同的权重值
+    在YOLO中，类别损失计算时，为了平衡不同类别之间的差异，通常会为每个类别设置不同的权重值。这是因为不同类别的样本数量可能不均衡，某些类别可能出现的频率更高，而某些类别可能出现的频率更低。为了使模型更关注出现频率较低的类别，我们可以为这些类别设置较高的权重值。在二分类问题中，常常出现正负样本比例不均衡的问题，这时就需要为正负样本设置不同的权重值来调整它们的损失值。在YOLO中的类别损失计算是一个多标签分类问题，它们是单独计算每一个类别的二值交叉熵损失的，根据在nn.BCEWithLogits中的posi_weight这个参数，可以为每一个类别设置不同的权重值（针对该类别下的二值交叉熵损失计算的正样本赋予该权重）。比如数据集中有三个类别，人、猫和狗，发现人的样本数量特别少，无论是人相对于猫和狗，又或者相对于在人的二分类下的正负样本，人的样本数量都很少，就可以设置pos_weight=[3,1,1]，为人的正样本在计算BCE时设置3倍权重值。以平衡类别不平衡的问题。YOLO11 在多标签场景下，输出层会为每个类别生成独立的logits，给每个类别配置对应的pos_weight实现逐类损失加权。pos_weight的计算依据是该类别自身的正负样本比例（人类正样本数/人类负样本数），而非跨类别对比（人类样本数/猫样本数）。整个任务是多标签（同时识别人和猫狗），但每个类内部是独立二分类（人：有 / 无；猫：有 / 无），pos_weight 只针对 “单类内部” 的正负失衡，而非整个任务的正负失衡。
