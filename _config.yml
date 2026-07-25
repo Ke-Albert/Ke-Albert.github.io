@@ -1,5 +1,5 @@
-title: 星合の空 # 站点标题
-description: Kan Wu's Personal Blog
+title: 欢迎来到Ke的站点 # 站点标题
+description: Ke Xu's Personal Blog
 baseurl: "" # 假如你的博客是建在某个目录下的，请在这里加上目录名，并且下面配置的所有链接里的`/assets`前也要加，即`/your_baseurl/assets`。这一项结尾不要有'/'。
 
 defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/front-matter-defaults/>功能进行配置
@@ -13,17 +13,18 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
               Loading comments...
             </div>
             <script src="https://giscus.app/client.js"
-              data-repo="wu-kan/wu-kan.github.io"
-              data-repo-id="MDEwOlJlcG9zaXRvcnkxNzIxMzc1OTQ="
+              data-repo="Ke-Albert/Ke-Albert.github.io"
+              data-repo-id="R_kgDOTjL3cg"
               data-category="Announcements"
-              data-category-id="DIC_kwDOCkKces4Clz9j"
-              data-mapping="url"
+              data-category-id="DIC_kwDOTjL3cs4DB8e2"
+              data-mapping="pathname"
               data-strict="0"
               data-reactions-enabled="1"
               data-emit-metadata="0"
-              data-input-position="top"
+              data-input-position="bottom"
               data-theme="preferred_color_scheme"
-              data-lang="en"
+              data-lang="zh-CN"
+              data-loading="lazy"
               crossorigin="anonymous"
               async>
             </script>
@@ -44,20 +45,20 @@ defaults: # 将所有配置选项使用<https://jekyllrb.com/docs/configuration/
                 href: /tags/
               - title: '捐赠 / Donate'
                 href: /donate/
-              - title: '简历 / Resume'
-                href: https://resume.wu-kan.cn/
+              # - title: '简历 / Resume'
+              #   href: https://resume.Ke-Albert.cn/
               - title: 'GitHub'
-                href: https://github.com/wu-kan
-              - title: 'Bilibili'
-                href: https://space.bilibili.com/166390020
-              - title: 'Zhihu'
-                href: https://www.zhihu.com/people/wukan0621
-              - title: 'Google Scholar'
-                href: https://scholar.google.com/citations?user=aU9P37UAAAAJ
-              - title: 'Vjudge'
-                href: https://vjudge.net/user/WuK
-              - title: 'jekyll-theme-WuK'
-                href: https://jekyll-theme-WuK.wu-kan.cn/
+                href: https://github.com/Ke-Albert
+              # - title: 'Bilibili'
+              #   href: https://space.bilibili.com/166390020
+              # - title: 'Zhihu'
+              #   href: https://www.zhihu.com/people/wukan0621
+              # - title: 'Google Scholar'
+              #   href: https://scholar.google.com/citations?user=aU9P37UAAAAJ
+              # - title: 'Vjudge'
+              #   href: https://vjudge.net/user/WuK
+              # - title: 'jekyll-theme-WuK'
+              #   href: https://jekyll-theme-WuK.wu-kan.cn/
             footer: | # 页面统计
               <div>
                 <span id="busuanzi_container_site_pv">
