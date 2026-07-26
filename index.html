@@ -1,0 +1,55 @@
+---
+layout: default
+title: 首页
+description: 欢迎来到我的博客
+permalink: /
+---
+
+<div class="home-page">
+  <aside class="home-panel">
+    <div class="home-avatar">
+      <img src="/avatar.jpeg" alt="{{ site.title }}" />
+    </div>
+    <p class="home-panel-role">个人博客 · 技术 · 生活</p>
+    <h1 class="home-name">{{ site.title }}</h1>
+    <p class="home-tagline">{{ site.description }}</p>
+
+    <div class="home-panel-summary">
+      <p>这里是 Ke 的个人空间，记录技术探索、开源实践与学习笔记。</p>
+      <p>擅长：Jekyll、前端、知识管理与现代写作。</p>
+    </div>
+
+    <div class="home-links">
+      <a href="/about/">关于我</a>
+      <a href="/archive/">全部归档</a>
+      <a href="/tags/">标签</a>
+    </div>
+  </aside>
+
+  <main class="home-content">
+    <section class="home-post-list">
+      <h2>最近更新</h2>
+      {% for post in paginator.posts %}
+      <article class="home-post-card">
+        <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+        <div class="home-post-meta">
+          <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%d %b %Y" }}</time>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+
+    <div class="pagination">
+      {% if paginator.next_page %}
+        <a class="pagination-item older" href="{{ paginator.next_page_path | relative_url }}">Older</a>
+      {% else %}
+        <span class="pagination-item older">Older</span>
+      {% endif %}
+      {% if paginator.previous_page %}
+        <a class="pagination-item newer" href="{{ paginator.previous_page_path | prepend: relative_url }}">Newer</a>
+      {% else %}
+        <span class="pagination-item newer">Newer</span>
+      {% endif %}
+    </div>
+  </main>
+</div>

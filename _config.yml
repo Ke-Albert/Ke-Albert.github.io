@@ -421,7 +421,6 @@ compress_html: # <https://github.com/penibelst/jekyll-compress-html>
 
 # githubpage上支持的插件见<https://pages.github.com/versions/>
 plugins: # <https://jekyllrb.com/docs/plugins/>
-  - jekyll-readme-index # 使用readme做index，从而和github渲染效果一致
   - jekyll-default-layout # 为每个markdown自动生成layout
   - jekyll-seo-tag # 为每个页面生成标题
   - jekyll-sitemap # 为站点生成站点地图
@@ -432,8 +431,8 @@ plugins: # <https://jekyllrb.com/docs/plugins/>
 
 remote_theme: https://github.com/wu-kan/jekyll-theme-WuK@5.5.0 #使用固定版本号以防止主题更新导致站点显示错乱
 
-readme_index: # 缺失index.md和index.html时，使用README.md代替之
-  with_frontmatter: true # 支持带有yaml头的README
+paginate: 5
+paginate_path: "/page:num/"
 
 webmaster_verifications: # <https://jekyll.github.io/jekyll-seo-tag/usage/>
   google: YIKi1rBnyUaS-DMYiluseI5kZzTwjCkTFmKkSkMZDJk

@@ -2,7 +2,7 @@
 
 <!-- .slide -->
 
-<!-- - [今日此时所想之事（四）](https://wu-kan.cn/2025/06/21/%E4%BB%8A%E6%97%A5%E6%AD%A4%E6%97%B6%E6%89%80%E6%83%B3%E4%B9%8B%E4%BA%8B-%E5%9B%9B/) -->
+- [今日此时所想之事（四）](https://wu-kan.cn/2025/06/21/%E4%BB%8A%E6%97%A5%E6%AD%A4%E6%97%B6%E6%89%80%E6%83%B3%E4%B9%8B%E4%BA%8B-%E5%9B%9B/)
 
 <!-- .slide vertical=true -->
 
