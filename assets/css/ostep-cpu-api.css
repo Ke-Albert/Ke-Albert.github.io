@@ -1,0 +1,21 @@
+/* Scoped to the CPU API article. */
+body:has(.cpu-compare) #wrap-content { max-width: 1480px; }
+.cpu-compare { margin: 1.5rem 0 2.5rem; border: 1px solid #cbd5e1; border-radius: .65rem; overflow: hidden; }
+.cpu-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); border-bottom: 1px solid #cbd5e1; }
+.cpu-row:last-child { border-bottom: 0; }
+.cpu-source, .cpu-explain { min-width: 0; padding: 1rem; }
+.cpu-source { background: #f5f7fa; border-right: 1px solid #cbd5e1; }
+.cpu-explain { background: #fff; }
+.markdown-body .cpu-row p { text-indent: 0; }
+.markdown-body .cpu-row p:last-child { margin-bottom: 0; }
+.markdown-body .cpu-source pre, .markdown-body .cpu-source pre.highlight { padding: .7rem; margin: .65rem 0 0; background: #0f172a; color: #f8fafc; box-shadow: none; font-size: .82rem; line-height: 1.7; white-space: pre; overflow-x: auto; }
+.markdown-body .cpu-source .highlight { margin: 0; }
+.markdown-body .cpu-source .rouge-table { display: table; width: auto; margin: 0; border: 0; }
+.markdown-body .cpu-source .rouge-table td { border: 0; padding: 0; }
+.markdown-body .cpu-source .rouge-gutter { display: none; }
+.markdown-body .cpu-source pre code { color: inherit; background: transparent; }
+@media (max-width: 800px) {
+ .cpu-row { grid-template-columns: minmax(0, 1fr); }
+ .cpu-source { border-right: 0; border-bottom: 1px dashed #cbd5e1; }
+ .cpu-source, .cpu-explain { padding: .8rem; }
+}
