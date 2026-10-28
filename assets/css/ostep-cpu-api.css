@@ -1,21 +1,42 @@
-/* Scoped to the CPU API article. */
-body:has(.cpu-compare) #wrap-content { max-width: 1480px; }
-.cpu-compare { margin: 1.5rem 0 2.5rem; border: 1px solid #cbd5e1; border-radius: .65rem; overflow: hidden; }
-.cpu-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); border-bottom: 1px solid #cbd5e1; }
-.cpu-row:last-child { border-bottom: 0; }
-.cpu-source, .cpu-explain { min-width: 0; padding: 1rem; }
-.cpu-source { background: #f5f7fa; border-right: 1px solid #cbd5e1; }
+/* Annotated reading: original source on the left, explanation on the right. */
+body:has(.cpu-compare) #wrap-content { max-width: 1500px; }
+body:has(.cpu-compare) { scroll-padding-top: 110px; }
+.cpu-index { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: .35rem .5rem; padding: .8rem 0; margin: 1.5rem 0 2rem; background: #fff; border-top: 1px solid #d8e1e8; border-bottom: 1px solid #d8e1e8; }
+.cpu-index a { padding: .25rem .6rem; color: #315a70; border-radius: .25rem; font-size: .85rem; text-decoration: none; white-space: nowrap; }
+.cpu-index a:hover, .cpu-index a:focus-visible { background: #e7f1f7; color: #123b51; }
+.cpu-primer { max-width: 1100px; margin: 0 auto 3rem; }
+.markdown-body .cpu-primer p { text-indent: 0; }
+.markdown-body .cpu-primer table { display: block; overflow-x: auto; font-size: .9rem; }
+.markdown-body .cpu-primer pre { overflow-x: auto; }
+.cpu-compare { margin: 2rem 0 3rem; border-top: 1px solid #d8e1e8; border-bottom: 1px solid #d8e1e8; }
+.cpu-row { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); scroll-margin-top: 110px; }
+.cpu-row:target .cpu-explain { background: #fff9e8; }
+.cpu-source, .cpu-explain { min-width: 0; padding: 1.5rem 1.35rem; }
+.cpu-source { background: #f3f7fa; border-right: 1px solid #d8e1e8; }
 .cpu-explain { background: #fff; }
-.markdown-body .cpu-row p { text-indent: 0; }
-.markdown-body .cpu-row p:last-child { margin-bottom: 0; }
-.markdown-body .cpu-source pre, .markdown-body .cpu-source pre.highlight { padding: .7rem; margin: .65rem 0 0; background: #0f172a; color: #f8fafc; box-shadow: none; font-size: .82rem; line-height: 1.7; white-space: pre; overflow-x: auto; }
-.markdown-body .cpu-source .highlight { margin: 0; }
+.cpu-location { display: block; margin-bottom: .9rem; color: #617787; font: 12px/1.5 ui-monospace, Consolas, monospace; letter-spacing: .03em; }
+.cpu-listing { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 1rem; }
+.cpu-code { min-width: 0; overflow-x: auto; }
+.markdown-body .cpu-source pre, .markdown-body .cpu-source pre.highlight, .markdown-body .cpu-source pre code { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: #253746; box-shadow: none; font: 13px/22px ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; }
+.markdown-body .cpu-source .cpu-lines { color: #7b8c9b; text-align: right; user-select: none; overflow: visible; }
+.markdown-body .cpu-source .highlight { margin: 0; padding: 0; background: transparent; }
 .markdown-body .cpu-source .rouge-table { display: table; width: auto; margin: 0; border: 0; }
 .markdown-body .cpu-source .rouge-table td { border: 0; padding: 0; }
 .markdown-body .cpu-source .rouge-gutter { display: none; }
-.markdown-body .cpu-source pre code { color: inherit; background: transparent; }
-@media (max-width: 800px) {
+.markdown-body .cpu-row p { text-indent: 0; }
+.markdown-body .cpu-row p:last-child { margin-bottom: 0; }
+.markdown-body .cpu-explain h3 { margin: 0 0 .85rem; font-size: 1.12rem; line-height: 1.5; border: 0; }
+.cpu-permalink { margin-left: -1rem; margin-right: .35rem; color: #8298a8; text-decoration: none; font-weight: 400; }
+.cpu-permalink:hover { color: #175d83; }
+@media (max-width: 850px) {
  .cpu-row { grid-template-columns: minmax(0, 1fr); }
- .cpu-source { border-right: 0; border-bottom: 1px dashed #cbd5e1; }
- .cpu-source, .cpu-explain { padding: .8rem; }
+ .cpu-source { border-right: 0; border-top: 1px solid #d8e1e8; }
+ .cpu-row:first-child .cpu-source { border-top: 0; }
+ .cpu-source, .cpu-explain { padding: 1.15rem .85rem; }
+ .cpu-explain { padding-left: 1.4rem; }
+ .cpu-index { flex-wrap: nowrap; overflow-x: auto; padding: .65rem 0; }
+ .cpu-location { margin-bottom: .6rem; }
+ .cpu-listing { gap: .7rem; }
 }
+
+body:has(.cpu-compare) :is(h2, span[id]) { scroll-margin-top: 110px; }
