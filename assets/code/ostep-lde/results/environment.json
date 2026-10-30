@@ -1,0 +1,42 @@
+{
+  "recorded_at": "2026-10-28T21:59:45.665849+08:00",
+  "command": [
+    "/home/ke/ostep-code/cpu-lde/lde_bench"
+  ],
+  "kernel": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "cpu_model": "AMD Ryzen 7 8845H w/ Radeon 780M Graphics",
+  "runner_allowed_cpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "clocksource": "tsc",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "cflags": "-std=c11 -Wall -Wextra -Werror -pedantic -O2",
+  "source_sha256": {
+    "lde_bench.c": "cd519ede26d5f4d0a761db5d86970ac42213defa80755a2ed5c77e3446e2c38d",
+    "Makefile": "29271d31acc49bf07dd73364569af69829b76a95120b9fbee0c380bc734ac8f0",
+    "run_experiment.py": "c120378e8065e8ce8242af83805df70097c8d9b5d6bb68f2889d8660a15318b7",
+    "test_bench.py": "6f7d53be0663435965a3cc53c800689fd5ec34305c17ae344bb157966df39dd4"
+  },
+  "benchmark_metadata": [
+    "# system=Linux 6.18.33.2-microsoft-standard-WSL2 x86_64",
+    "# cpu=0,iterations=200000,syscalls=2000000,trials=7,warmup=10000",
+    "# clock=CLOCK_MONOTONIC_RAW,reported_resolution_ns=1",
+    "# timer=gettimeofday,samples=200000,zero=195989,negative=0,min_positive_ns=1000,p50_ns=0,p90_ns=0,p99_ns=1000,max_ns=36000",
+    "# timer=monotonic_raw,samples=200000,zero=0,negative=0,min_positive_ns=10,p50_ns=20,p90_ns=20,p99_ns=21,max_ns=61669"
+  ]
+}

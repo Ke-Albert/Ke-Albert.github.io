@@ -5,7 +5,7 @@ date: 2026-10-28 12:00:00 +0800
 tag: 操作系统
 description: "先区分文件描述符、标准流和大写常量，再逐段对照源码理解 fork、exec、wait 与管道通信。"
 excerpt: "STDOUT_FILENO 与 stdout 有什么区别？先建立输入输出知识地图，再按步骤阅读 8 道进程作业。"
-last_modified_at: 2026-10-28T21:38:25.316072+08:00
+last_modified_at: 2026-10-30T16:25:24.562307+08:00
 ---
 
 
@@ -2422,3 +2422,9 @@ waitpid 被 EINTR 打断时继续等，其他错误立即报告。结束后要�
 - 讲解结构参考：[labml：Multi-Headed Attention](https://nn.labml.ai/transformers/mha.html)。本文仅借鉴注释式组织方式，未复用其模型讲解正文。
 - 文件接口：[Linux open(2)](https://man7.org/linux/man-pages/man2/open.2.html)、[pipe(2)](https://man7.org/linux/man-pages/man2/pipe.2.html)、[dup(2)/dup2](https://man7.org/linux/man-pages/man2/dup.2.html)。
 - 标准流与读取：[stdin(3)](https://man7.org/linux/man-pages/man3/stdin.3.html)、[read(2)](https://man7.org/linux/man-pages/man2/read.2.html)、[pipe(7)](https://man7.org/linux/man-pages/man7/pipe.7.html)、[setvbuf(3)](https://man7.org/linux/man-pages/man3/setbuf.3.html)。
+
+<!-- obsidian-backlinks:start -->
+## 引用本文的笔记
+
+- [OSTEP LDE：逐段读懂系统调用与上下文切换测量]({% post_url 2026-10-30-ostep-lde %})：用两条管道测量同一 CPU 上两个进程的交接，并解释局部变量如何传值。
+<!-- obsidian-backlinks:end -->
